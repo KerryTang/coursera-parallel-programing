@@ -1,5 +1,7 @@
 package scalashop
 
+import java.util.concurrent._
+import scala.collection.mutable._
 import org.scalameter._
 import common._
 
@@ -44,7 +46,10 @@ object HorizontalBoxBlur {
   def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
   // TODO implement this method using the `boxBlurKernel` method
 
-  ???
+   var col, row = 0
+    for (row <- from until end)
+      for (col <- 0 until src.width)
+        dst.update(col, row, boxBlurKernel(src, col, row, radius))
   }
 
   /** Blurs the rows of the source image in parallel using `numTasks` tasks.
@@ -56,7 +61,26 @@ object HorizontalBoxBlur {
   def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
   // TODO implement using the `task` construct and the `blur` method
 
-  ???
+    val interval = src.height/numTasks
+    
+    if (interval == 0) {
+      task(blur(src, dst, 0, src.height, radius)).join
+    }
+    else {
+
+      val computations = ListBuffer.empty[ForkJoinTask[Unit]]
+      var numTask = 0
+
+      for(numTask <- 0 until numTasks) {
+
+        val (from, end) = (numTask * interval, clamp((numTask+1)*interval, 0, src.height))
+        
+        computations += task(blur(src, dst, from, end, radius))
+      }
+        
+      computations.toList.foreach(t => t.join)
+    }
   }
+
 
 }

@@ -1,5 +1,6 @@
 package scalashop
 
+import java.util.concurrent._
 import org.scalameter._
 import common._
 
@@ -24,6 +25,7 @@ object VerticalBoxBlurRunner {
     println(s"sequential blur time: $seqtime ms")
 
     val numTasks = 32
+
     val partime = standardConfig measure {
       VerticalBoxBlur.parBlur(src, dst, numTasks, radius)
     }
@@ -44,7 +46,11 @@ object VerticalBoxBlur {
    */
   def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
     // TODO implement this method using the `boxBlurKernel` method
-    ???
+    var col, row = 0
+
+    for (col <- from until end)
+      for (row <- 0 until src.height)
+        dst.update(col, row, boxBlurKernel(src, col, row, radius))
   }
 
   /** Blurs the columns of the source image in parallel using `numTasks` tasks.
@@ -54,8 +60,28 @@ object VerticalBoxBlur {
    *  columns.
    */
   def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
+
     // TODO implement using the `task` construct and the `blur` method
-    ???
+    
+    val interval = src.width/numTasks
+    
+    if (interval == 0) {
+      task(blur(src, dst, 0, src.width, radius)).join
+    }
+    else {
+
+      val computations = ListBuffer.empty[ForkJoinTask[Unit]]
+      var numTask = 0
+
+      for(numTask <- 0 until numTasks) {
+
+        val (from, end) = (numTask * interval, clamp((numTask+1)*interval, 0, src.width))
+        
+        computations += task(blur(src, dst, from, end, radius))
+      }
+        
+      computations.toList.foreach(t => t.join)
+    }
   }
 
 }
