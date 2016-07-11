@@ -74,19 +74,20 @@ object ParallelParenthesesBalancing {
    */
   def parBalance(chars: Array[Char], threshold: Int): Boolean = {
 
-    @tailrec
     def traverse(idx: Int, until: Int, unMatchLeft: Int, unMatchRight: Int): (Int, Int) = {
-      if (idx >= until)
-        (unMatchLeft, unMatchRight)
-      else {
-        val next = idx + 1
-        val (l, r) = chars(idx) match {
-          case '(' => (unMatchLeft+1, unMatchRight)
-          case ')' => if (unMatchLeft > 0) (unMatchLeft-1, unMatchRight) else (unMatchLeft, unMatchRight+1)
-          case _ => (unMatchLeft, unMatchRight)
+      
+      var x = idx
+      var l, r = 0
+      while (x < until) {
+        chars(x) match {
+          case '(' => l += 1
+          case ')' => if (l > 0) l -= 1 else r += 1
+          case _ => None
         }
-        traverse(next, until, l, r)
+        x += 1
       }
+      
+      (l, r) 
     }
 
     def reduce(from: Int, until: Int):(Int, Int) = {
