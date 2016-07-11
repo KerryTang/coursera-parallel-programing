@@ -34,7 +34,7 @@ class ParallelParenthesesBalancingSuite extends FunSuite {
     def check(input: String, expected: Boolean) =
       assert(balance(input.toArray) == expected,
         s"balance($input) should be $expected")
-
+    
     check("()", true)
     check(")(", false)
     check("((", false)
