@@ -33,16 +33,8 @@ object ParallelParenthesesBalancingRunner {
     } 
     println(s"parallel result = $parResult")
     println(s"parallel balancing time: $fjtime ms")
-
-    // val mb = 1024*1024
-    // val runtime = Runtime.getRuntime
-    // println("** Used Memory:  " + (runtime.totalMemory - runtime.freeMemory) / mb)
-    // println("** Free Memory:  " + runtime.freeMemory / mb)
-    // println("** Total Memory: " + runtime.totalMemory / mb)
-    // println("** Max Memory:   " + runtime.maxMemory / mb)
     println(s"speedup: ${seqtime / fjtime}")
-  
-  }
+    }
 }
 
 object ParallelParenthesesBalancing {
@@ -91,7 +83,7 @@ object ParallelParenthesesBalancing {
     }
 
     def reduce(from: Int, until: Int):(Int, Int) = {
-      if (until - from < threshold) {
+      if (until - from <= threshold) {
         val (l, r) = traverse(from, until, 0, 0)
         // println("traverse:(%d, %d) -> (%d, %d)".format(from, until, l, r))
         (l, r)
