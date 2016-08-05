@@ -59,8 +59,8 @@ package object barneshut {
     val centerY: Float = nw.centerY + nw.size/2
     val size: Float = nw.size * 2
     val mass: Float = nw.mass + ne.mass + sw.mass + se.mass
-    val massX: Float = (nw.mass*nw.massX + ne.mass*ne.massX + sw.mass*sw.massX + se.mass*se.massX) / mass
-    val massY: Float = (nw.mass*nw.massY + ne.mass*ne.massY + sw.mass*sw.massY + se.mass*se.massY) / mass
+    val massX: Float = if (mass != 0) (nw.mass*nw.massX + ne.mass*ne.massX + sw.mass*sw.massX + se.mass*se.massX) / mass else centerX
+    val massY: Float = if (mass != 0) (nw.mass*nw.massY + ne.mass*ne.massY + sw.mass*sw.massY + se.mass*se.massY) / mass else centerY
     val total: Int = nw.total + ne.total + sw.total + se.total
 
     def insert(b: Body): Fork = {
@@ -68,7 +68,7 @@ package object barneshut {
         case (x, y) if (x < centerX && y < centerY) => Fork(nw.insert(b), ne, sw, se)
         case (x, y) if (x > centerX && y < centerY) => Fork(nw, ne.insert(b), sw, se)
         case (x, y) if (x < centerX && y > centerY) => Fork(nw, ne, sw.insert(b), se)
-        case (x, y) if (x > centerX && y > centerY) => Fork(nw.insert(b), ne, sw, se.insert(b))
+        case (x, y) if (x > centerX && y > centerY) => Fork(nw, ne, sw, se.insert(b))
       }
     }
   }
@@ -178,8 +178,7 @@ package object barneshut {
     for (i <- 0 until matrix.length) matrix(i) = new ConcBuffer
 
     def +=(b: Body): SectorMatrix = {
-      
-      matrix((b.y*sectorPrecision/boundaries.height).toInt*sectorPrecision + (b.x*sectorPrecision/boundaries.width).toInt) += b
+      apply((b.x/(boundaries.width/sectorPrecision)).toInt, (b.y/(boundaries.height/sectorPrecision)).toInt) += b
       this
     }
 
