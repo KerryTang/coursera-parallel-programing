@@ -13,10 +13,10 @@ import scala.math._
 class Simulator(val taskSupport: TaskSupport, val timeStats: TimeStatistics) {
 
   def updateBoundaries(boundaries: Boundaries, body: Body): Boundaries = {
-    boundaries.maxX = max(body.x, boundaries.maxX)
-    boundaries.minX = min(body.x, boundaries.minX)
-    boundaries.maxY = max(body.y, boundaries.maxY)
-    boundaries.minY = min(body.y, boundaries.minY)
+    boundaries.maxX = max(boundaries.maxX, body.x)
+    boundaries.minX = min(boundaries.minX, body.x)
+    boundaries.maxY = max(boundaries.maxY, body.y)
+    boundaries.minY = min(boundaries.minY, body.y)
     boundaries
   }
 
@@ -38,7 +38,7 @@ class Simulator(val taskSupport: TaskSupport, val timeStats: TimeStatistics) {
   def computeSectorMatrix(bodies: Seq[Body], boundaries: Boundaries): SectorMatrix = timeStats.timed("matrix") {
     val parBodies = bodies.par
     parBodies.tasksupport = taskSupport
-    parBodies.aggregate(new SectorMatrix(new Boundaries, SECTOR_PRECISION))({ (matrix, body) => matrix += body }, {  (m1, m2) => m1.combine(m2) })
+    parBodies.aggregate(new SectorMatrix(new Boundaries, SECTOR_PRECISION))({ (matrix, body) => matrix += body }, { (m1, m2) => m1.combine(m2) })
   }
 
   def computeQuad(sectorMatrix: SectorMatrix): Quad = timeStats.timed("quad") {
@@ -48,7 +48,7 @@ class Simulator(val taskSupport: TaskSupport, val timeStats: TimeStatistics) {
   def updateBodies(bodies: Seq[Body], quad: Quad): Seq[Body] = timeStats.timed("update") {
     val parBodies = bodies.par
     parBodies.tasksupport = taskSupport
-    parBodies.aggregate(Seq[Body]())({ (seq, b) => seq :+ b.updated(quad)}, { (b1, b2) => b1 ++ b2 })
+    parBodies.aggregate(Seq[Body]())({ (seq, b) => seq :+ b.updated(quad) }, { (seq1, seq2) => seq1 ++ seq2 })
     
   }
 

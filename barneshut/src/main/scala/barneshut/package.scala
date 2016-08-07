@@ -59,23 +59,24 @@ package object barneshut {
     val centerY: Float = nw.centerY + nw.size/2
     val size: Float = nw.size * 2
     val mass: Float = nw.mass + ne.mass + sw.mass + se.mass
-    val massX: Float = if (mass != 0) (nw.mass*nw.massX + ne.mass*ne.massX + sw.mass*sw.massX + se.mass*se.massX) / mass else centerX
-    val massY: Float = if (mass != 0) (nw.mass*nw.massY + ne.mass*ne.massY + sw.mass*sw.massY + se.mass*se.massY) / mass else centerY
+    val massX: Float = if (mass == 0) centerX else (nw.mass*nw.massX + ne.mass*ne.massX + sw.mass*sw.massX + se.mass*se.massX) / mass
+    val massY: Float = if (mass == 0) centerY else (nw.mass*nw.massY + ne.mass*ne.massY + sw.mass*sw.massY + se.mass*se.massY) / mass
     val total: Int = nw.total + ne.total + sw.total + se.total
 
     def insert(b: Body): Fork = {
-      (b.x, b.y) match {
-        case (x, y) if (x < centerX && y < centerY) => Fork(nw.insert(b), ne, sw, se)
-        case (x, y) if (x > centerX && y < centerY) => Fork(nw, ne.insert(b), sw, se)
-        case (x, y) if (x < centerX && y > centerY) => Fork(nw, ne, sw.insert(b), se)
-        case (x, y) if (x > centerX && y > centerY) => Fork(nw, ne, sw, se.insert(b))
+      (b.x, b.y) match {  
+        case (x, y) if (x <= centerX && y <= centerY) => Fork(nw.insert(b), ne, sw, se)
+        case (x, y) if (x >= centerX && y <= centerY) => Fork(nw, ne.insert(b), sw, se)
+        case (x, y) if (x <= centerX && y >= centerY) => Fork(nw, ne, sw.insert(b), se)
+        case (x, y) if (x >= centerX && y >= centerY) => Fork(nw, ne, sw, se.insert(b))
       }
     }
   }
 
   case class Leaf(centerX: Float, centerY: Float, size: Float, bodies: Seq[Body])
   extends Quad {
-    val (mass, massX, massY) = (bodies.map(_.mass).sum: Float, bodies.map(b=> b.mass*b.x).sum/bodies.map(_.mass).sum: Float, bodies.map(b=> b.mass*b.y).sum/bodies.map(_.mass).sum: Float)
+    val mass: Float = bodies.map(_.mass).sum
+    val (massX, massY) = ((bodies.map(b=> b.mass*b.x).sum)/mass: Float, (bodies.map(b=> b.mass*b.y).sum)/mass: Float)
     val total: Int = bodies.length
     def insert(b: Body): Quad = {
 
@@ -85,14 +86,16 @@ package object barneshut {
         else insertInner(f.insert(bodies.head), bodies.tail)
       }
 
-      if (this.size > minimumSize)
+      if (size > minimumSize) {
         insertInner(Fork(Empty(centerX-size/4, centerY-size/4, size/2), 
                     Empty(centerX+size/4, centerY-size/4, size/2),
                     Empty(centerX-size/4, centerY+size/4, size/2),
                     Empty(centerX+size/4, centerY+size/4, size/2)), bodies :+ b)
-      else 
+      }
+      else {
         Leaf(centerX, centerY, size, bodies :+ b)
-    
+      }
+
     }
   }
 
@@ -147,7 +150,7 @@ package object barneshut {
           // add force contribution of each body by calling addForce
         case Fork(nw, ne, sw, se) => {
           // see if node is far enough from the body,
-          if (quad.size / distance(quad.centerX, quad.centerY, x, y) < theta) addForce(quad.mass, quad.massX, quad.massY)
+          if ((quad.size/distance(quad.massX, quad.massY, x, y)) < theta) addForce(quad.mass, quad.massX, quad.massY)
           // or recursion is needed
           else {
             traverse(nw)
@@ -178,18 +181,18 @@ package object barneshut {
     for (i <- 0 until matrix.length) matrix(i) = new ConcBuffer
 
     def +=(b: Body): SectorMatrix = {
-      apply((b.x/(boundaries.width/sectorPrecision)).toInt, (b.y/(boundaries.height/sectorPrecision)).toInt) += b
+      // In case of body lies out of boundaries
+      val x = if (b.x > boundaries.maxX) boundaries.maxX else if (b.x < boundaries.minX) boundaries.minX else b.x
+      val y = if (b.y > boundaries.maxY) boundaries.maxY else if (b.y < boundaries.minY) boundaries.minY else b.y
+
+      apply(((x-boundaries.minX)/(boundaries.width/sectorPrecision)).toInt, ((y-boundaries.minY)/(boundaries.height/sectorPrecision)).toInt) += b
       this
     }
 
     def apply(x: Int, y: Int) = matrix(y * sectorPrecision + x)
 
     def combine(that: SectorMatrix): SectorMatrix = {
-      var i = 0
-      while (i < matrix.length) {
-        matrix(i) = matrix(i).combine(that.matrix(i))
-        i += 1
-      }
+      for (i <- 0 until matrix.length) matrix(i) = matrix(i).combine(that.matrix(i))
       this
     }
 
